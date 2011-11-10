@@ -9,7 +9,7 @@
 #include <QFile>
 #include <QString>
 #include <QTextStream>
-#include <QDataStream>
+#include <QInputDialog>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -18,11 +18,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     mines_left = MINES;
 
-    //intialize high scores and names
-    for(int i=0; i<10; i++) {
+    //initialize the high scores
+    for(unsigned int i=0; i<10; i++) {
         scores.push_back(9999);
         names.push_back("noname");
     }
+    //read in the high scores from the files
     read_in_highscores();
     //construct and display the grid
     prepare_grid(50, 100, GRID_SIZE, this);
@@ -37,28 +38,99 @@ MainWindow::MainWindow(QWidget *parent) :
 
 //reads in highscores from file
 void MainWindow::read_in_highscores() {
-    QFile file1("./names.txt");
-    file1.open(QIODevice::ReadOnly | QIODevice::Text );
-    QTextStream in1(&file1);
-    QString line;
-    for(int i = 0; i < 10; ++i) {
-        line = in1.readLine();
-        if(line.size() > 0)
-            names[i] = line;
+    //get the current path of the directory
+    QString current = dir.currentPath();
+    //finish file path with names.txt
+    current += "/names.txt";
+    //create a file with the given location
+    QFile file1(current);
+    //if the file exists
+    if(file1.open(QIODevice::ReadOnly | QIODevice::Text )) {
+        //open the file and read in the names
+        QTextStream in1( &file1 );
+        QString line;
+        for(int i = 0; i < 10; ++i) {
+            line = in1.readLine();
+            //store the names into the names vector
+            if(line.size() > 0)
+                names[i] = line;
+        }
+        //close the file
+        file1.close();
     }
-    file1.close();
-
-    QFile file2("./scores.txt");
-    file2.open(QIODevice::ReadOnly | QIODevice::Text );
-    QDataStream in2(&file2);
-    for(int i = 0; i < 10; ++i) {
-    //     in2 >> scores[i];
+    //otherwise, create the file and write in noname for all names
+    else {
+        file1.open(QIODevice::ReadWrite);
+        QTextStream in1( &file1 );
+        QString line;
+        for(int i = 0; i < 10; ++i) {
+            in1 << "noname" << "\n";
+        }
+        //close the new file
+        file1.close();
     }
-    file2.close();
+    //reset the path of the directory
+    current = dir.currentPath();
+    //finish the file path with scores.txt
+    current += "/scores.txt";
+    //create a file with the given location
+    QFile file2(current);
+    //if the file exists
+    if(file2.open(QIODevice::ReadOnly | QIODevice::Text )) {
+        //open the file and read in the scores
+        QTextStream in2(&file2);
+        for(int i = 0; i < 10; ++i) {
+            //store the scores into the scores vector
+             in2 >> scores[i];
+        }
+        //close the file
+        file2.close();
+    }
+    //otherwise, create the file and write in 9999 for all scores
+    else {
+        file2.open(QIODevice::ReadWrite);
+        QTextStream in2(&file2);
+        for(int i = 0; i < 10; ++i) {
+            in2 << "9999" << "\n";
+        }
+        //close the new file
+        file2.close();
+    }
 
 }
 
 void MainWindow::write_highscores() {
+    //get the current path of the directory
+    QString current = dir.currentPath();
+    //finish the path with names.txt
+    current += "/names.txt";
+    //create a file with the given location
+    QFile file1(current);
+    //open the file
+    file1.open(QIODevice::WriteOnly | QIODevice::Text );
+    //for every name in the names vector, write the name to the names.txt file
+    QTextStream in1( &file1 );
+    QString line;
+    for(int i = 0; i < 10; ++i) {
+        in1 << names[i] << "\n";
+    }
+    //close the file
+    file1.close();
+    //reset the path of the directory
+    current = dir.currentPath();
+    //finish the path with scores.txt
+    current += "/scores.txt";
+    //create a file with the given location
+    QFile file2(current);
+    //open the file
+    file2.open(QIODevice::WriteOnly | QIODevice::Text );
+    //for every score in the scores vector, write the score to the scores.txt file
+    QTextStream in2(&file2);
+    for(int i = 0; i < 10; ++i) {
+        in2 << scores[i] << "\n";
+    }
+    //close the file
+    file2.close();
 
 }
 
@@ -82,7 +154,9 @@ void MainWindow::prepare_grid(int top_left_x, int top_left_y, int grid_size, QWi
     calc_mines();
     found_images = false;
     QPixmap p;
-    p.load("images/mine.png", "PNG", 0);
+    QString img = dir.currentPath();
+    img += "/images/mine.png";
+    p.load(img, "PNG", 0);
     if(p.isNull()) {
         ui->plainTextEdit->appendPlainText("Could not find images");
     }
@@ -134,11 +208,16 @@ void MainWindow::reset() {
 void MainWindow::player_lose() {
     ui->plainTextEdit->appendPlainText("player_lose()");
     ui->timer_label->setText("you lost");
+    //stop the timer, show the mines and the numbers around them
     timer->stop();
+    show_num_mines();
     show_mines();
+    //disable the buttons so that the player cannot keep clicking
+    for(int i = 0; i < buttons.size(); ++i) {
+        buttons.at(i)->setEnabled(false);
+    }
 }
-
-void MainWindow::mine_search(Button* b) {
+void MainWindow::rec_mine_search(Button *b) {
     ++numUncovered;
     //disable and display mines
     b->disable();
@@ -152,20 +231,53 @@ void MainWindow::mine_search(Button* b) {
             //if not out of bounds and not already disabled
             if(b != other_btn && other_btn->isEnabled()) {
                 //recurse on the direction
-                mine_search(other_btn);
+                rec_mine_search(other_btn);
             }
         }
     }
+}
+
+void MainWindow::mine_search(Button* b) {
+    rec_mine_search(b);
     ui->plainTextEdit->appendPlainText("mine_search()");
     //check if player has won
-    if(numUncovered == GRID_SIZE*GRID_SIZE - MINES)
-        player_won();
+    bool won = true;
+       for(unsigned int i=0; i<buttons.size(); i++) {
+           if(!buttons[i]->has_mine() && buttons[i]->isEnabled()) {
+               won = false;
+           }
+       }
+       if(won) {
+           player_won();
+       }
 }
 
 void MainWindow::player_won() {
     ui->plainTextEdit->appendPlainText("player won!");
+    //stop the timer
     timer->stop();
-    write_highscores();
+    //if the user's time is faster than the slowest score, there is a new high score
+    if(elapsed_time <= scores[9]) {
+        //for every score, check to see if the user's score is better or equal
+        for(int i = 0; i < 10; ++i) {
+            //if the user's score is better or equal, ask the user for their name, insert their score/name
+            //above the lower/equal score/name, and delete the lowest score/name
+            if(elapsed_time <= scores[i]) {
+                bool ok;
+                QString text = QInputDialog::getText(this, tr("New High Score!"),
+                                                      tr("Enter your name:"), QLineEdit::Normal,
+                                                      QDir::home().dirName(), &ok);
+                names.insert(names.begin() + i, text);
+                names.pop_back();
+                scores.insert(scores.begin() + i, elapsed_time);
+                scores.pop_back();
+                //write the scores to the files
+                write_highscores();
+                //exit the loop
+                return;
+            }
+        }
+    }
 }
 
 void MainWindow::show_mines(){
@@ -334,6 +446,7 @@ void MainWindow::on_actionTop_Ten_triggered(){
 }
 
 void MainWindow::on_actionExit_triggered() {
+    write_highscores();
     exit(0);
 }
 

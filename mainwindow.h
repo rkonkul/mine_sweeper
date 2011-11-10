@@ -12,6 +12,7 @@
 #include <vector>
 #include <algorithm>
 #include "Button.h"
+#include <QDir>
 
 namespace Ui {
     class MainWindow;
@@ -48,6 +49,8 @@ public:
     //returns the Button at a row, col
     Button* get_button(int row, int col);
     ~MainWindow();
+    //used to get current directory of program
+    QDir dir;
 
 public slots:
     void increment_mines_left();
@@ -61,6 +64,8 @@ public slots:
     //recursively searches board for 0 buttons and reveals
     //those around it
     void mine_search(Button *b);
+    //recursive part of mine_search
+    void rec_mine_search(Button *b);
     //debug slot
     void show_mines();
     //debug slot
