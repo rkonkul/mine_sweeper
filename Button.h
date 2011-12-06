@@ -5,6 +5,7 @@
 #include <QPushButton>
 #include <QString>
 #include <QWidget>
+#include <QDir>
 
 namespace Ui {
     class MainWindow;
@@ -21,6 +22,8 @@ private:
     bool mine;
     int num_mines_around;
     Ui::MainWindow *ui;
+    QString path, zero, one, two, three, four, five, six, seven, eight, qmark, m;
+    QIcon icZero, icOne, icTwo, icThree, icFour, icFive, icSix, icSeven, icEight, icQ, icM;
 public:
     Button(QString text, QWidget *parent = 0);
     //get a pointer to MainWindow into the button
@@ -51,7 +54,11 @@ public:
     void set_num_mines(int a);
     //disables the button
     void disable();
+    //enables the button
+    void enable();
     ~Button();
+    void setImgPathBtn(QString path_);
+    QDir dir;
 signals:
      void mine_marked();
      void mine_unmarked();

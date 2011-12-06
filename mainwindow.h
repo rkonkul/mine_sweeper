@@ -28,6 +28,9 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 public:
     explicit MainWindow(QWidget *parent = 0);
+    //sets paths to images
+    //searches two possible paths
+    void setImgPaths();
     //reads in highscores from file
     //if file not found, one created
     void read_in_highscores();
@@ -66,9 +69,9 @@ public slots:
     void mine_search(Button *b);
     //recursive part of mine_search
     void rec_mine_search(Button *b);
-    //debug slot
+    //shows mines hidden on board
     void show_mines();
-    //debug slot
+    //shows the number of mines surrounding the buttons
     void show_num_mines();
 
 private slots:
@@ -81,12 +84,14 @@ private slots:
 
     void on_actionReset_Top_Ten_triggered();
 
+    void on_actionHelp_triggered();
+
+    void on_actionAbout_triggered();
+
 private:
     const static int GRID_SIZE = 10;
     const static int MINES = 10;
     int numUncovered;
-    //QString* names;
-    //int* scores;
     std::vector<QString> names;
     std::vector<int> scores;
     Ui::MainWindow *ui;
@@ -95,7 +100,12 @@ private:
     int elapsed_time;
     std::vector<Button*> buttons;
     bool found_images;
-    std::vector<int> high_scores;
+    QString path;
+    QString okay;
+    QString x;
+    QString mine;
+    QString name;
+    QString score;
 };
 
 #endif // MAINWINDOW_H

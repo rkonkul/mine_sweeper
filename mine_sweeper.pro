@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui static
 
 TARGET = mine_sweeper
 TEMPLATE = app
@@ -20,12 +20,16 @@ HEADERS  += mainwindow.h \
 FORMS    += mainwindow.ui
 
 OTHER_FILES += \
-    mine.png \
     scores.txt \
     names.txt
 
-RESOURCES += \
-    images.qrc
+RESOURCES +=
+
+CONFIG += -static
+
+QMAKE_LFLAGS += -static
+
+
 
 
 

@@ -13,25 +13,70 @@ void Button::setUI (Ui::MainWindow *uiparam) {
     ui = uiparam;
 }
 
+void Button::setImgPathBtn(QString path_) {
+    path = path_;
+    //set the full path for all numbers
+    zero = path + "/images/zero.png";
+    one = path + "/images/one.png";
+    two = path + "/images/two.png";
+    three = path + "/images/three.png";
+    four = path + "/images/four.png";
+    five = path + "/images/five.png";
+    six = path + "/images/six.png";
+    seven = path + "/images/seven.png";
+    eight = path + "/images/eight.png";
+    qmark = path + "/images/qmark.png";
+    m = path + "/images/m.png";
+    icZero.addPixmap(QPixmap(zero),QIcon::Disabled);
+    icOne.addPixmap(QPixmap(one),QIcon::Disabled);
+    icTwo.addPixmap(QPixmap(two),QIcon::Disabled);
+    icThree.addPixmap(QPixmap(three),QIcon::Disabled);
+    icFour.addPixmap(QPixmap(four),QIcon::Disabled);
+    icFive.addPixmap(QPixmap(five),QIcon::Disabled);
+    icSix.addPixmap(QPixmap(six),QIcon::Disabled);
+    icSeven.addPixmap(QPixmap(seven),QIcon::Disabled);
+    icEight.addPixmap(QPixmap(eight),QIcon::Disabled);
+    icQ.addPixmap(QPixmap(qmark),QIcon::Disabled);
+    icM.addPixmap(QPixmap(m),QIcon::Disabled);
+}
+
 void Button::setNum(int a) {
-    QString f;
-    f.setNum(a);
-    this->setText(f);
+    switch(a) {
+        case 0:
+            this->setIcon(icZero);
+            break;
+        case 1:
+            this->setIcon(icOne);
+            break;
+        case 2:
+            this->setIcon(icTwo);
+         break;
+        case 3:
+            this->setIcon(icThree);
+            break;
+        case 4:
+            this->setIcon(icFour);
+            break;
+        case 5:
+            this->setIcon(icFive);
+            break;
+        case 6:
+            this->setIcon(icSix);
+            break;
+        case 7:
+            this->setIcon(icSeven);
+            break;
+        case 8:
+            this->setIcon(icEight);
+            break;
+    }
 }
 
 void Button::mouseReleaseEvent(QMouseEvent* e) {
-    QString f, g;
-    f.setNum(get_row());
-    g.setNum(get_col());
-    ui->label->setText(f);
-    ui->label_2->setText(g); //debug stuff
-
     if (e->button() == Qt::RightButton)  {
-        ui->label_3->setText("rightbutton");
         right_clicked();
     }
     else if (e->button() == Qt::LeftButton) {
-         ui->label_3->setText("leftbutton");
          left_clicked();
     }
     //for some reason, button sticks
@@ -42,18 +87,18 @@ void Button::mouseReleaseEvent(QMouseEvent* e) {
 void Button::right_clicked() {
     if(this->display == BLANK) {
         display = MINE;
-        this->setText("M");
+        this->setIcon(icM);
         //emit signal since mine was marked
         emit mine_marked();
     }
     else if(this->display == MINE) {
         display = Q_MARK;
-        this->setText("?");
+        this->setIcon(icQ);
         emit mine_unmarked();
     }
     else if(this->display == Q_MARK) {
         display = BLANK;
-        this->setText("");
+        this->setIcon(QIcon(""));
     }
 }
 
@@ -64,7 +109,6 @@ void Button::left_clicked() {
     }
     else if(this->has_mine()) {
         //clicked on mine game over
-        this->setText("BOOM");
         emit player_lose_signal();
     }
     else {
@@ -91,13 +135,14 @@ Button::Button(int row, int col, int x, int y, QString text, QWidget *parent)
     display = BLANK;
     mine = false;
     num_mines_around = 0;
+    enable();
 }
 
 void Button::reset_btn() {
     display = BLANK;
     mine = false;
     setText("");
-    setEnabled(true);
+    enable();
 }
 
 int Button::get_row() {
@@ -126,6 +171,12 @@ void Button::set_num_mines(int a) {
 
 void Button::disable() {
     this->setEnabled(false);
+    setStyleSheet("background-color: rgba( 100, 100, 100, 80% ); border: 1px solid #8f8f91; color: white;" );
+}
+
+void Button::enable() {
+    this->setEnabled(true);
+    setStyleSheet( "background-color: rgba( 20, 20, 20, 65% ); border: 1px solid #8f8f91; color: white;" );
 }
 
 Button::~Button()

@@ -16,7 +16,16 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    setImgPaths();
+    QPixmap bg(path+"/images/dsknight.png");
+    QPalette p(palette());
+    p.setBrush(QPalette::Background, bg);
+    setAutoFillBackground(true);
+    setPalette(p);
     mines_left = MINES;
+
+    QWidget::setWindowIcon(QIcon(QString(path+"/images/skull.png")));
+    QWidget::setFixedSize(this->size());
 
     //initialize the high scores
     for(unsigned int i=0; i<10; i++) {
@@ -34,16 +43,58 @@ MainWindow::MainWindow(QWidget *parent) :
     timer = new QTimer(this);
     timer->start(1000);
     connect (timer, SIGNAL(timeout()), this, SLOT(update_timer()));
+    //set the reset button icon
+    ui->reset_button->setIcon(QIcon(okay));
+    ui->reset_button->setStyleSheet( "background-color: rgba( 50, 50, 50, 60% ); color: white;" );
+    ui->label_2->setStyleSheet("color: white;");
+    ui->mine_left_label->setStyleSheet("color: white;");
+    ui->mines_left_display->setStyleSheet("color: white;");
+    ui->timer_label->setStyleSheet("color: white;");
+}
+
+void MainWindow::setImgPaths() {
+   //get the current directory path
+   path = dir.currentPath();
+   okay = path + "/images/okay.jpg";
+
+   QFile file(okay);
+   if(file.exists()) {
+       //set the reset button to okay
+       ui->reset_button->setIcon(QIcon(okay));
+   }
+   //if the file does not exist, check other directories
+   else {
+       //go up a folder and check again
+       path = dir.currentPath() + "../mine_sweeper";
+       okay = path + "/images/okay.png";
+       QFile file(okay);
+       if(file.exists()) {
+           //set the reset button to okay
+           ui->reset_button->setIcon(QIcon(okay));
+       }
+       //if the file does not exist, go up again and check one more time
+       else {
+           path = dir.currentPath() + "../../mine_sweeper";
+           okay = path + "/images/okay.png";
+           QFile file(okay);
+           if(file.exists()) {
+               //set the reset button to okay
+               ui->reset_button->setIcon(QIcon(okay));
+           }
+       }
+   }
+   //set the full path for x, mine, name, and score
+   x = path + "/images/X.png";
+   mine = path + "/images/mine.png";
+   name = path + "/names.txt";
+   score = path + "/scores.txt";
+
 }
 
 //reads in highscores from file
 void MainWindow::read_in_highscores() {
-    //get the current path of the directory
-    QString current = dir.currentPath();
-    //finish file path with names.txt
-    current += "/names.txt";
     //create a file with the given location
-    QFile file1(current);
+    QFile file1(name);
     //if the file exists
     if(file1.open(QIODevice::ReadOnly | QIODevice::Text )) {
         //open the file and read in the names
@@ -69,12 +120,7 @@ void MainWindow::read_in_highscores() {
         //close the new file
         file1.close();
     }
-    //reset the path of the directory
-    current = dir.currentPath();
-    //finish the file path with scores.txt
-    current += "/scores.txt";
-    //create a file with the given location
-    QFile file2(current);
+    QFile file2(score);
     //if the file exists
     if(file2.open(QIODevice::ReadOnly | QIODevice::Text )) {
         //open the file and read in the scores
@@ -96,16 +142,11 @@ void MainWindow::read_in_highscores() {
         //close the new file
         file2.close();
     }
-
 }
 
 void MainWindow::write_highscores() {
-    //get the current path of the directory
-    QString current = dir.currentPath();
-    //finish the path with names.txt
-    current += "/names.txt";
     //create a file with the given location
-    QFile file1(current);
+    QFile file1(name);
     //open the file
     file1.open(QIODevice::WriteOnly | QIODevice::Text );
     //for every name in the names vector, write the name to the names.txt file
@@ -116,12 +157,8 @@ void MainWindow::write_highscores() {
     }
     //close the file
     file1.close();
-    //reset the path of the directory
-    current = dir.currentPath();
-    //finish the path with scores.txt
-    current += "/scores.txt";
     //create a file with the given location
-    QFile file2(current);
+    QFile file2(score);
     //open the file
     file2.open(QIODevice::WriteOnly | QIODevice::Text );
     //for every score in the scores vector, write the score to the scores.txt file
@@ -148,19 +185,11 @@ void MainWindow::prepare_grid(int top_left_x, int top_left_y, int grid_size, QWi
             p->setUI(ui);
             //add button to vector
             buttons.push_back(p);
+            p->setImgPathBtn(path);
         }
     }
     place_mines();
     calc_mines();
-    found_images = false;
-    QPixmap p;
-    QString img = dir.currentPath();
-    img += "/images/mine.png";
-    p.load(img, "PNG", 0);
-    if(p.isNull()) {
-        ui->plainTextEdit->appendPlainText("Could not find images");
-    }
-    ui->label->setPixmap(p);
 }
 
 void MainWindow::place_mines() {
@@ -191,6 +220,9 @@ void MainWindow::decrement_mines_left() {
 }
 
 void MainWindow::reset() {
+    //reset the reset button icon
+    ui->reset_button->setIcon(QIcon(okay));
+
     elapsed_time = 0;
     numUncovered = 0;
     timer->start();
@@ -200,23 +232,33 @@ void MainWindow::reset() {
     ui->mines_left_display->setNum(MINES);
     for(unsigned int i=0; i<buttons.size(); ++i) {
        buttons[i]->reset_btn();
+       //reset the mine icons to an empty icon
+       buttons[i]->setIcon(QIcon(""));
     }
     place_mines();
     calc_mines();
 }
 
 void MainWindow::player_lose() {
-    ui->plainTextEdit->appendPlainText("player_lose()");
-    ui->timer_label->setText("you lost");
+    ui->timer_label->setText("You lost.");
     //stop the timer, show the mines and the numbers around them
     timer->stop();
     show_num_mines();
     show_mines();
     //disable the buttons so that the player cannot keep clicking
-    for(int i = 0; i < buttons.size(); ++i) {
-        buttons.at(i)->setEnabled(false);
+    for(unsigned int i = 0; i < buttons.size(); ++i) {
+        if(buttons.at(i)->has_mine()) {
+            buttons.at(i)->disable();
+            QIcon icon;
+            icon.addPixmap(QPixmap(mine),QIcon::Disabled);
+            buttons.at(i)->setIcon(icon);
+        }
+        else buttons.at(i)->disable();
     }
+    //set the reset button icon
+    ui->reset_button->setIcon(QIcon(x));
 }
+
 void MainWindow::rec_mine_search(Button *b) {
     ++numUncovered;
     //disable and display mines
@@ -239,7 +281,6 @@ void MainWindow::rec_mine_search(Button *b) {
 
 void MainWindow::mine_search(Button* b) {
     rec_mine_search(b);
-    ui->plainTextEdit->appendPlainText("mine_search()");
     //check if player has won
     bool won = true;
        for(unsigned int i=0; i<buttons.size(); i++) {
@@ -253,7 +294,6 @@ void MainWindow::mine_search(Button* b) {
 }
 
 void MainWindow::player_won() {
-    ui->plainTextEdit->appendPlainText("player won!");
     //stop the timer
     timer->stop();
     //if the user's time is faster than the slowest score, there is a new high score
@@ -280,10 +320,10 @@ void MainWindow::player_won() {
     }
 }
 
-void MainWindow::show_mines(){
+void MainWindow::show_mines() {
     for(unsigned int i=0; i<buttons.size(); ++i) {
         if(buttons[i]->has_mine()) {
-            buttons[i]->setText("mine");
+            buttons[i]->setIcon(QIcon(mine));
         }
     }
 }
@@ -354,9 +394,6 @@ bool MainWindow::surround_mine(Button* b, direction dir) {
         other_col--;
     }
     Button* other_button = get_button(other_row, other_col);
-    if(other_button == NULL) {
-        ui->label_3->setText("null pointer in surround_mine()");
-    }
     if(other_button != NULL && other_button->has_mine())
         return true;
     return false;
@@ -406,9 +443,6 @@ Button* MainWindow::move_dir(Button* b, direction dir) {
         other_col--;
     }
     Button* other_button = get_button(other_row, other_col);
-    if(other_button == NULL) {
-        ui->label_3->setText("null pointer in move_dir()");
-    }
     return other_button;
 }
 
@@ -428,20 +462,20 @@ void MainWindow::on_actionReset_triggered() {
 }
 
 void MainWindow::on_actionTop_Ten_triggered(){
-    QString f;
-    f.setNum(scores[4]);
-    ui->plainTextEdit->appendPlainText(f);
     QMessageBox msgBox;
-    msgBox.setText("1.  " + names[0] + " " + QString::number(scores[0]) + " seconds\n" +
-                   "2.  " + names[1] + " " + QString::number(scores[1]) + " seconds\n" +
-                   "3.  " + names[2] + " " + QString::number(scores[2]) + " seconds\n" +
-                   "4.  " + names[3] + " " + QString::number(scores[3]) + " seconds\n" +
-                   "5.  " + names[4] + " " + QString::number(scores[4]) + " seconds\n" +
-                   "6.  " + names[5] + " " + QString::number(scores[5]) + " seconds\n" +
-                   "7.  " + names[6] + " " + QString::number(scores[6]) + " seconds\n" +
-                   "8.  " + names[7] + " " + QString::number(scores[7]) + " seconds\n" +
-                   "9.  " + names[8] + " " + QString::number(scores[8]) + " seconds\n" +
-                   "10. " + names[9] + " " + QString::number(scores[9]) + " seconds");
+    msgBox.setWindowTitle("Top Ten");
+    msgBox.setText("1.  " + names[0] + ": " + QString::number(scores[0]) + " seconds\n" +
+                   "2.  " + names[1] + ": " + QString::number(scores[1]) + " seconds\n" +
+                   "3.  " + names[2] + ": " + QString::number(scores[2]) + " seconds\n" +
+                   "4.  " + names[3] + ": " + QString::number(scores[3]) + " seconds\n" +
+                   "5.  " + names[4] + ": " + QString::number(scores[4]) + " seconds\n" +
+                   "6.  " + names[5] + ": " + QString::number(scores[5]) + " seconds\n" +
+                   "7.  " + names[6] + ": " + QString::number(scores[6]) + " seconds\n" +
+                   "8.  " + names[7] + ": " + QString::number(scores[7]) + " seconds\n" +
+                   "9.  " + names[8] + ": " + QString::number(scores[8]) + " seconds\n" +
+                   "10. " + names[9] + ": " + QString::number(scores[9]) + " seconds");
+    msgBox.setStyleSheet("background-color: rgba( 10, 10, 10, 100% ); color: white;");
+    msgBox.setWindowIcon(QIcon(QString(path+"/images/skull.png")));
     msgBox.exec();
 }
 
@@ -456,4 +490,28 @@ void MainWindow::on_actionReset_Top_Ten_triggered() {
         names[i] = "noname";
     }
     write_highscores();
+}
+
+void MainWindow::on_actionHelp_triggered() {
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("Help");
+    msgBox.setText("You can uncover a square by clicking it. If you uncover a mine, you lose the game.\n"
+                   "\nIf a number appears on a square, it indicates how many total mines are in the eight "
+                   "squares that surround the numbered one. You can use this number to help deduce whether "
+                   "a square is safe to uncover.\n\nTo mark a square you suspect contains a mine, "
+                   "right-click it. This will add a M to the square. If you're not sure, right-click it "
+                   "again, which will add a question mark to the square.");
+    msgBox.setStyleSheet("background-color: rgba( 10, 10, 10, 100% ); color: white;");
+    msgBox.setWindowIcon(QIcon(QString(path+"/images/skull.png")));
+    msgBox.exec();
+}
+
+void MainWindow::on_actionAbout_triggered() {
+    QMessageBox msgBox;
+    msgBox.setWindowTitle("About");
+    msgBox.setText("Authors: Ryan Konkul(rkonku2) and Scott Prentice(sprent2)\n\nMinesweeper - Project 4\n"
+                   "CS340 Fall 2011 - Professor Troy\n11/10/2011");
+    msgBox.setStyleSheet("background-color: rgba( 10, 10, 10, 100% ); color: white;");
+    msgBox.setWindowIcon(QIcon(QString(path+"/images/skull.png")));
+    msgBox.exec();
 }
